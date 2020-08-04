@@ -62,11 +62,26 @@ def nil.freeze
   super
 end
 
+require 'rdl'
+if ENV['COLLECT_DATA']
+  RDL.get_path_types "./lib/tzinfo/"
+  RDL.get_path_types "./lib/tzinfo/data_sources/"
+  RDL.get_path_types "./lib/tzinfo/format1/"
+  RDL.get_path_types "./lib/tzinfo/format2/"
+  #RDL.get_file_types("./lib/tzinfo/timestamp.rb")
+end
+
+
 require 'minitest/autorun'
 require 'tzinfo'
 require 'date'
 require 'fileutils'
 require 'rbconfig'
+
+
+
+
+
 
 module TestUtils
   ZONEINFO_SYMLINKS = [
@@ -490,3 +505,5 @@ class Minitest::Test
   include TestUtils::Helpers
   include TestUtils::Assertions
 end
+
+

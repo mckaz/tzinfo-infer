@@ -5,6 +5,9 @@
 module TZInfo
 end
 
+require 'rdl'
+require 'types/core'
+
 require_relative 'tzinfo/version'
 
 require_relative 'tzinfo/string_deduper'

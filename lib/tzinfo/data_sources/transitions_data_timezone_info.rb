@@ -90,14 +90,14 @@ module TZInfo
         index.downto(0) do |i|
           start_transition = i > 0 ? @transitions[i - 1] : nil
           end_transition = @transitions[i]
-          offset = start_transition ? start_transition.offset : end_transition.previous_offset
+          offset = start_transition ? RDL.type_cast(start_transition, "TZInfo::TimezoneTransition").offset : end_transition.previous_offset
           utc_timestamp_value = local_timestamp_value - offset.observed_utc_offset
 
           # It is not necessary to compare the sub-seconds because a timestamp
           # is in the period if is >= the start transition (sub-seconds would
           # make == become >) and if it is < the end transition (which
           # sub-seconds cannot affect).
-          if (!start_transition || utc_timestamp_value >= start_transition.timestamp_value) && (!end_transition || utc_timestamp_value < end_transition.timestamp_value)
+          if (!start_transition || utc_timestamp_value >= RDL.type_cast(start_transition, "TZInfo::TimezoneTransition").timestamp_value) && (!end_transition || utc_timestamp_value < end_transition.timestamp_value)
             result << TransitionsTimezonePeriod.new(start_transition, end_transition)
           elsif end_transition && end_transition.timestamp_value < earliest_possible_utc_value
             break

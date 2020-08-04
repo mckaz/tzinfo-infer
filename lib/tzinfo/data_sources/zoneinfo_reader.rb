@@ -270,7 +270,7 @@ module TZInfo
           transitions.map do |t|
             offset = offsets[t[:offset]]
             at = t[:at]
-            raise InvalidZoneinfoFile, "Transition at #{at} is not later than the previous transition at #{previous_at} in file '#{file.path}'." if previous_at && previous_at >= at
+            raise InvalidZoneinfoFile, "Transition at #{at} is not later than the previous transition at #{previous_at} in file '#{file.path}'." if previous_at && RDL.type_cast(previous_at, "Integer")  >= at
             tt = TimezoneTransition.new(offset, previous_offset, at)
             previous_offset = offset
             previous_at = at

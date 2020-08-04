@@ -32,7 +32,7 @@ module TZInfo
     def self.set_timezone_offset(timestamp, timezone_offset)
       raise ArgumentError, 'timestamp must be specified' unless timestamp
       raise ArgumentError, 'timezone_offset must be specified' unless timezone_offset
-      new!(timestamp.value, timestamp.sub_second, timezone_offset.observed_utc_offset).set_timezone_offset(timezone_offset)
+      RDL.type_cast(new!(timestamp.value, timestamp.sub_second, timezone_offset.observed_utc_offset), "TZInfo::TimestampWithOffset").set_timezone_offset(timezone_offset)
     end
 
     # Sets the associated {TimezoneOffset} of this {TimestampWithOffset}.

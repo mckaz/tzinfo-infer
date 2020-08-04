@@ -288,7 +288,7 @@ module TZInfo
           raise InvalidTimezoneIdentifier, "Invalid identifier: #{valid_identifier}"
         end
 
-        if zoneinfo.kind_of?(TimezoneOffset)
+        if zoneinfo.kind_of?(TimezonOffset)
           ConstantOffsetDataTimezoneInfo.new(valid_identifier, zoneinfo)
         else
           TransitionsDataTimezoneInfo.new(valid_identifier, zoneinfo)

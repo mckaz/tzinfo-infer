@@ -21,7 +21,7 @@ module TZInfo
       @strings = create_hash do |h, k|
         v = k.dup.freeze
         h[v] = v
-      end
+        end
     end
 
     # @param string [String] the string to deduplicate.

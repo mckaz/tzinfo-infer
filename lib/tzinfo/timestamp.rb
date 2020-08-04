@@ -140,6 +140,7 @@ module TZInfo
 
         if block_given?
           result = yield timestamp
+          result = RDL.type_cast(result, "TZInfo::Timestamp")
           raise ArgumentError, 'block must return a Timestamp' unless result.kind_of?(Timestamp)
 
           case value
@@ -153,7 +154,7 @@ module TZInfo
         else
           timestamp
         end
-      end
+          end
 
       # Creates a new UTC {Timestamp}.
       #
@@ -293,7 +294,7 @@ module TZInfo
       # @return [Timestamp] the {Timestamp} representation of `time_like`.
       def for_time_like(time_like, ignore_offset, target_utc_offset)
         value = time_like.to_i
-        sub_second = time_like.subsec.to_r
+        sub_second = RDL.type_cast(time_like, "Time", force: true).subsec.to_r
 
         if ignore_offset
           utc_offset = target_utc_offset

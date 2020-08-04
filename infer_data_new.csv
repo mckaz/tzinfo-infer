@@ -1,0 +1,1550 @@
+Class,Method,Inferred Type,Original Type,Source Code,Comments
+TZInfo::CountryTimezone,initialize,"([ freeze: () -> XXX ], Rational, Rational, ?[ freeze: () -> XXX ]) -> self",,"def initialize(identifier, latitude, longitude, description = nil)
+      @identifier = identifier.freeze
+      @latitude = latitude
+      @longitude = longitude
+      @description = description && description.freeze
+    end"
+TZInfo::CountryTimezone,timezone,() -> TZInfo::TimezoneProxy,,"def timezone
+      Timezone.get_proxy(@identifier)
+    end"
+TZInfo::CountryTimezone,description_or_friendly_identifier,() -> XXX,,"def description_or_friendly_identifier
+      description || timezone.friendly_identifier(true)
+    end"
+TZInfo::CountryTimezone,==,(TZInfo::CountryTimezone) -> XXX,,"def ==(ct)
+      ct.kind_of?(CountryTimezone) &&
+        identifier == ct.identifier  && latitude == ct.latitude &&
+        longitude == ct.longitude   && description == ct.description
+    end"
+TZInfo::CountryTimezone,eql?,(TZInfo::CountryTimezone) -> (false or true),,"def eql?(ct)
+      self == ct
+    end"
+TZInfo::CountryTimezone,hash,() -> Number,,"def hash
+      [@identifier, @latitude, @longitude, @description].hash
+    end"
+TZInfo::LinkedTimezone,initialize,(TZInfo::DataSources::LinkedTimezoneInfo) -> self,,"def initialize(info)
+      super
+      @linked_timezone = Timezone.get(info.link_to_identifier)
+    end"
+TZInfo::LinkedTimezone,period_for,(XXX) -> XXX,,"def period_for(time)
+      @linked_timezone.period_for(time)
+    end"
+TZInfo::LinkedTimezone,periods_for_local,(XXX) -> XXX,,"def periods_for_local(local_time)
+      @linked_timezone.periods_for_local(local_time)
+    end"
+TZInfo::LinkedTimezone,transitions_up_to,"(XXX, ?XXX) -> XXX",,"def transitions_up_to(to, from = nil)
+      @linked_timezone.transitions_up_to(to, from)
+    end"
+TZInfo::LinkedTimezone,canonical_zone,() -> XXX,,"def canonical_zone
+      @linked_timezone.canonical_zone
+    end"
+TZInfo::TransitionsTimezonePeriod,initialize,"(nil, nil) -> self",,"def initialize(start_transition, end_transition)
+      if start_transition
+        super(start_transition.offset)
+      elsif end_transition
+        super(end_transition.previous_offset)
+      else
+        raise ArgumentError, 'At least one of start_transition and end_transition must be specified'
+      end
+
+      @start_transition = start_transition
+      @end_transition = end_transition
+    end"
+TZInfo::TransitionsTimezonePeriod,==,(TZInfo::TimezonePeriod) -> XXX,,"def ==(p)
+      p.kind_of?(TransitionsTimezonePeriod) && start_transition == p.start_transition && end_transition == p.end_transition
+    end"
+TZInfo::TransitionsTimezonePeriod,hash,() -> Number,,"def hash
+      [@start_transition, @end_transition].hash
+    end"
+TZInfo::TransitionsTimezonePeriod,inspect,() -> String,,"def inspect
+      ""#<#{self.class}: @start_transition=#{@start_transition.inspect}, @end_transition=#{@end_transition.inspect}>""
+    end"
+TZInfo::TimezoneOffset,initialize,"([ +: (XXX) -> XXX ], Number, [ freeze: () -> XXX ]) -> self",,"def initialize(base_utc_offset, std_offset, abbreviation)
+      @base_utc_offset = base_utc_offset
+      @std_offset = std_offset
+      @abbreviation = abbreviation.freeze
+
+      @observed_utc_offset = @base_utc_offset + @std_offset
+    end"
+TZInfo::TimezoneOffset,dst?,() -> (false or true),,"def dst?
+      @std_offset != 0
+    end"
+TZInfo::TimezoneOffset,==,((TZInfo::TimezoneOffset or TZInfo::TimezonePeriod)) -> XXX,,"def ==(toi)
+      toi.kind_of?(TimezoneOffset) &&
+        base_utc_offset == toi.base_utc_offset && std_offset == toi.std_offset && abbreviation == toi.abbreviation
+    end"
+TZInfo::TimezoneOffset,eql?,((TZInfo::TimezoneOffset or TZInfo::TimezonePeriod)) -> (false or true),,"def eql?(toi)
+      self == toi
+    end"
+TZInfo::TimezoneOffset,hash,() -> Number,,"def hash
+      [@base_utc_offset, @std_offset, @abbreviation].hash
+    end"
+TZInfo::TimezoneOffset,inspect,() -> String,,"def inspect
+      ""#<#{self.class}: @base_utc_offset=#{@base_utc_offset}, @std_offset=#{@std_offset}, @abbreviation=#{@abbreviation}>""
+    end"
+TZInfo::Timezone,identifier,() -> XXX,,"def identifier
+      raise_unknown_timezone
+    end"
+TZInfo::Timezone,name,() -> String,,"def name
+      # Don't use alias, as identifier gets overridden.
+      identifier
+    end"
+TZInfo::Timezone,to_s,() -> String,,"def to_s
+      friendly_identifier
+    end"
+TZInfo::Timezone,inspect,() -> String,,"def inspect
+      ""#<#{self.class}: #{identifier}>""
+    end"
+TZInfo::Timezone,friendly_identifier,(?XXX) -> String,,"def friendly_identifier(skip_first_part = false)
+      id = identifier
+      id = id.encode(Encoding::UTF_8) unless id.encoding.ascii_compatible?
+      parts = id.split('/')
+      if parts.empty?
+        # shouldn't happen
+        identifier
+      elsif parts.length == 1
+        parts[0]
+      else
+        prefix = skip_first_part ? nil : ""#{parts[0]} - ""
+
+        parts = parts.drop(1).map do |part|
+          part.gsub!(/_/, ' ')
+
+          if part.index(/[a-z]/)
+            # Missing a space if a lower case followed by an upper case and the
+            # name isn't McXxxx.
+            part.gsub!(/([^M][a-z])([A-Z])/, '\1 \2')
+            part.gsub!(/([M][a-bd-z])([A-Z])/, '\1 \2')
+
+            # Missing an apostrophe if two consecutive upper case characters.
+            part.gsub!(/([A-Z])([A-Z])/, '\1\'\2')
+          end
+
+          part
+        end
+
+        ""#{prefix}#{parts.reverse.join(', ')}""
+      end
+    end"
+TZInfo::Timezone,period_for,(XXX) -> XXX,,"def period_for(time)
+      raise_unknown_timezone
+    end"
+TZInfo::Timezone,periods_for_local,(XXX) -> XXX,,"def periods_for_local(local_time)
+      raise_unknown_timezone
+    end"
+TZInfo::Timezone,transitions_up_to,"(XXX, ?XXX) -> XXX",,"def transitions_up_to(to, from = nil)
+      raise_unknown_timezone
+    end"
+TZInfo::Timezone,canonical_zone,() -> XXX,,"def canonical_zone
+      raise_unknown_timezone
+    end"
+TZInfo::Timezone,period_for_utc,((TZInfo::Timestamp or Time)) -> XXX,,"def period_for_utc(utc_time)
+      raise ArgumentError, 'utc_time must be specified' unless utc_time
+      period_for(Timestamp.for(utc_time, :treat_as_utc))
+    end"
+TZInfo::Timezone,period_for_local,"((TZInfo::Timestamp or Time), ?[ nil?: () -> XXX ]) { ((XXX or XXX)) -> XXX } -> XXX",,"def period_for_local(local_time, dst = Timezone.default_dst)
+      raise ArgumentError, 'local_time must be specified' unless local_time
+      local_time = Timestamp.for(local_time, :ignore)
+      results = periods_for_local(local_time)
+
+      if results.empty?
+        raise PeriodNotFound, ""#{local_time.strftime('%Y-%m-%d %H:%M:%S')} is an invalid local time.""
+      elsif results.size < 2
+        results.first
+      else
+        # ambiguous result try to resolve
+
+        if !dst.nil?
+          matches = results.find_all {|period| period.dst? == dst}
+          results = matches if !matches.empty?
+        end
+
+        if results.size < 2
+          results.first
+        else
+          # still ambiguous, try the block
+
+          if block_given?
+            results = yield results
+          end
+
+          if results.is_a?(TimezonePeriod)
+            results
+          elsif results && results.size == 1
+            results.first
+          else
+            raise AmbiguousTime, ""#{local_time.strftime('%Y-%m-%d %H:%M:%S')} is an ambiguous local time.""
+          end
+        end
+      end
+    end"
+TZInfo::Timezone,to_local,((TZInfo::Timestamp or Time)) -> TZInfo::Timestamp,,"def to_local(time)
+      raise ArgumentError, 'time must be specified' unless time
+
+      Timestamp.for(time) do |ts|
+        TimestampWithOffset.set_timezone_offset(ts, period_for(ts).offset)
+      end
+    end"
+TZInfo::Timezone,utc_to_local,((TZInfo::Timestamp or Time)) -> TZInfo::Timestamp,,"def utc_to_local(utc_time)
+      raise ArgumentError, 'utc_time must be specified' unless utc_time
+
+      Timestamp.for(utc_time, :treat_as_utc) do |ts|
+        to_local(ts)
+      end
+    end"
+TZInfo::Timezone,local_to_utc,"((TZInfo::Timestamp or Time), ?[ nil?: () -> XXX ]) { (XXX) -> XXX } -> TZInfo::Timestamp",,"def local_to_utc(local_time, dst = Timezone.default_dst)
+      raise ArgumentError, 'local_time must be specified' unless local_time
+
+      Timestamp.for(local_time, :ignore) do |ts|
+        period = if block_given?
+          period_for_local(ts, dst) {|periods| yield periods }
+        else
+          period_for_local(ts, dst)
+        end
+
+        ts.add_and_set_utc_offset(-period.observed_utc_offset, :utc)
+      end
+    end"
+TZInfo::Timezone,local_time,"(Number, ?([ +: (Number) -> XXX ] and [ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?Number, ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?XXX, ?[ nil?: () -> XXX ]) { XXX } -> XXX",,"def local_time(year, month = 1, day = 1, hour = 0, minute = 0, second = 0, sub_second = 0, dst = Timezone.default_dst, &block)
+      local_timestamp(year, month, day, hour, minute, second, sub_second, dst, &block).to_time
+    end"
+TZInfo::Timezone,local_datetime,"(Number, ?([ +: (Number) -> XXX ] and [ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?(Number and [ >: (Number) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?XXX, ?[ nil?: () -> XXX ]) { XXX } -> XXX",,"def local_datetime(year, month = 1, day = 1, hour = 0, minute = 0, second = 0, sub_second = 0, dst = Timezone.default_dst, &block)
+      local_timestamp(year, month, day, hour, minute, second, sub_second, dst, &block).to_datetime
+    end"
+TZInfo::Timezone,local_timestamp,"(Number, ?([ +: (Number) -> XXX ] and [ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?(Number and [ >: (Number) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?XXX, ?[ nil?: () -> XXX ]) { XXX } -> TZInfo::TimestampWithOffset",,"def local_timestamp(year, month = 1, day = 1, hour = 0, minute = 0, second = 0, sub_second = 0, dst = Timezone.default_dst, &block)
+      ts = Timestamp.create(year, month, day, hour, minute, second, sub_second)
+      timezone_offset = period_for_local(ts, dst, &block).offset
+      utc_offset = timezone_offset.observed_utc_offset
+      TimestampWithOffset.new(ts.value - utc_offset, sub_second, utc_offset).set_timezone_offset(timezone_offset)
+    end"
+TZInfo::Timezone,canonical_identifier,() -> XXX,,"def canonical_identifier
+      canonical_zone.identifier
+    end"
+TZInfo::Timezone,now,() -> TZInfo::Timestamp,,"def now
+      to_local(Time.now)
+    end"
+TZInfo::Timezone,current_period,() -> XXX,,"def current_period
+      period_for(Time.now)
+    end"
+TZInfo::Timezone,current_time_and_period,"() -> [TZInfo::Timestamp, (XXX or nil)]",,"def current_time_and_period
+      period = nil
+
+      local_time = Timestamp.for(Time.now) do |ts|
+        period = period_for(ts)
+        TimestampWithOffset.set_timezone_offset(ts, period.offset)
+      end
+
+      [local_time, period]
+    end"
+TZInfo::Timezone,strftime,"(XXX, ?((TZInfo::Timestamp or Time))) -> XXX",,"def strftime(format, time = Time.now)
+      to_local(time).strftime(format)
+    end"
+TZInfo::Timezone,abbreviation,(?XXX) -> XXX,,"def abbreviation(time = Time.now)
+      period_for(time).abbreviation
+    end"
+TZInfo::Timezone,dst?,(?XXX) -> (false or true),,"def dst?(time = Time.now)
+      period_for(time).dst?
+    end"
+TZInfo::Timezone,base_utc_offset,(?XXX) -> XXX,,"def base_utc_offset(time = Time.now)
+      period_for(time).base_utc_offset
+    end"
+TZInfo::Timezone,observed_utc_offset,(?XXX) -> XXX,,"def observed_utc_offset(time = Time.now)
+      period_for(time).observed_utc_offset
+    end"
+TZInfo::Timezone,<=>,(([ identifier: () -> XXX ] and [ is_a?: (Class) -> XXX ])) -> nil,,"def <=>(tz)
+      return nil unless tz.is_a?(Timezone)
+      identifier <=> tz.identifier
+    end"
+TZInfo::Timezone,eql?,(XXX) -> (false or true),,"def eql?(tz)
+      self == tz
+    end"
+TZInfo::Timezone,hash,() -> XXX,,"def hash
+      identifier.hash
+    end"
+TZInfo::Timezone,=~,([ =~: (XXX) -> XXX ]) -> XXX,,"def =~(regexp)
+      regexp =~ identifier
+    end"
+TZInfo::Timezone,_dump,(XXX) -> XXX,,"def _dump(limit)
+      identifier
+    end"
+TZInfo::Timezone,raise_unknown_timezone,() -> XXX,,"def raise_unknown_timezone
+      raise UnknownTimezone, 'TZInfo::Timezone should not be constructed directly (use TZInfo::Timezone.get instead)'
+    end"
+TZInfo::TimezoneProxy,initialize,(XXX) -> self,,"def initialize(identifier)
+      super()
+      @identifier = identifier
+      @real_timezone = nil
+    end"
+TZInfo::TimezoneProxy,identifier,() -> XXX,,"def identifier
+      @real_timezone ? @real_timezone.identifier : @identifier
+    end"
+TZInfo::TimezoneProxy,period_for,(XXX) -> XXX,,"def period_for(time)
+      real_timezone.period_for_utc(time)
+    end"
+TZInfo::TimezoneProxy,periods_for_local,(XXX) -> XXX,,"def periods_for_local(local_time)
+      real_timezone.periods_for_local(local_time)
+    end"
+TZInfo::TimezoneProxy,transitions_up_to,"(XXX, ?XXX) -> XXX",,"def transitions_up_to(to, from = nil)
+      real_timezone.transitions_up_to(to, from)
+    end"
+TZInfo::TimezoneProxy,canonical_zone,() -> XXX,,"def canonical_zone
+      real_timezone.canonical_zone
+    end"
+TZInfo::TimezoneProxy,_dump,(XXX) -> XXX,,"def _dump(limit)
+      identifier
+    end"
+TZInfo::TimezoneProxy,real_timezone,() -> TZInfo::Timezone,,"def real_timezone
+      # Thread-safety: It is possible that the value of @real_timezone may be
+      # calculated multiple times in concurrently executing threads. It is not
+      # worth the overhead of locking to ensure that @real_timezone is only
+      # calculated once.
+      unless @real_timezone
+        result = Timezone.get(@identifier)
+        return result if frozen?
+        @real_timezone = result
+      end
+
+      @real_timezone
+    end"
+TZInfo::Timestamp,utc?,() -> nil,,"def utc?
+      @utc
+    end"
+TZInfo::Timestamp,add_and_set_utc_offset,"(([ ==: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ([ !=: (:utc) -> XXX ] and [ ==: ((:utc or XXX)) -> XXX ] and [ kind_of?: (Class) -> XXX ])) -> Object",,"def add_and_set_utc_offset(seconds, utc_offset)
+      raise ArgumentError, 'seconds must be an Integer' unless seconds.kind_of?(Integer)
+      raise ArgumentError, 'utc_offset must be an Integer, :utc or nil' if utc_offset && utc_offset != :utc && !utc_offset.kind_of?(Integer)
+      return self if seconds == 0 && utc_offset == (@utc ? :utc : @utc_offset)
+      Timestamp.send(:new!, @value + seconds, @sub_second, utc_offset)
+    end"
+TZInfo::Timestamp,utc,() -> Object,,"def utc
+      return self if @utc
+      Timestamp.send(:new!, @value, @sub_second, :utc)
+    end"
+TZInfo::Timestamp,to_time,() -> XXX,,"def to_time
+      time = new_time
+
+      if @utc_offset && !@utc
+        time.localtime(@utc_offset)
+      else
+        time.utc
+      end
+    end"
+TZInfo::Timestamp,to_datetime,() -> XXX,,"def to_datetime
+      new_datetime
+    end"
+TZInfo::Timestamp,to_i,() -> XXX,,"def to_i
+      value
+    end"
+TZInfo::Timestamp,strftime,(XXX) -> XXX,,"def strftime(format)
+      raise ArgumentError, 'format must be specified' unless format
+      to_time.strftime(format)
+    end"
+TZInfo::Timestamp,to_s,() -> String,,"def to_s
+      return value_and_sub_second_to_s unless @utc_offset
+      return ""#{value_and_sub_second_to_s} UTC"" if @utc
+
+      sign = @utc_offset >= 0 ? '+' : '-'
+      min, sec = @utc_offset.abs.divmod(60)
+      hour, min = min.divmod(60)
+
+      ""#{value_and_sub_second_to_s(@utc_offset)} #{sign}#{'%02d' % hour}:#{'%02d' % min}#{sec > 0 ? ':%02d' % sec : nil}#{@utc_offset != 0 ? "" (#{value_and_sub_second_to_s} UTC)"" : nil}""
+    end"
+TZInfo::Timestamp,<=>,(TZInfo::Timestamp) -> nil,,"def <=>(t)
+      return nil unless t.kind_of?(Timestamp)
+      return nil if utc_offset && !t.utc_offset
+      return nil if !utc_offset && t.utc_offset
+
+      result = value <=> t.value
+      result = sub_second <=> t.sub_second if result == 0
+      result
+    end"
+TZInfo::Timestamp,hash,() -> Number,,"def hash
+      [@value, @sub_second, !!@utc_offset].hash
+    end"
+TZInfo::Timestamp,inspect,() -> String,,"def inspect
+      ""#<#{self.class}: @value=#{@value}, @sub_second=#{@sub_second}, @utc_offset=#{@utc_offset.inspect}, @utc=#{@utc.inspect}>""
+    end"
+TZInfo::Timestamp,new_time,"(?[ at: (XXX, XXX) -> XXX ]) -> XXX",,"def new_time(klass = Time)
+      klass.at(@value, @sub_second * 1_000_000)
+    end"
+TZInfo::Timestamp,new_datetime,(?[ jd: (Number) -> XXX ]) -> XXX,,"def new_datetime(klass = DateTime)
+      datetime = klass.jd(JD_EPOCH + ((@value.to_r + @sub_second) / 86400))
+      @utc_offset && @utc_offset != 0 ? datetime.new_offset(Rational(@utc_offset, 86400)) : datetime
+    end"
+TZInfo::Timestamp,value_and_sub_second_to_s,(?XXX) -> String,,"def value_and_sub_second_to_s(offset = 0)
+      ""#{@value + offset}#{sub_second_to_s}""
+    end"
+TZInfo::Timestamp,sub_second_to_s,() -> String,,"def sub_second_to_s
+      if @sub_second == 0
+        ''
+      else
+        "" #{@sub_second.numerator}/#{@sub_second.denominator}""
+      end
+    end"
+TZInfo::Timestamp,initialize!,"(([ +: (XXX) -> XXX ] and [ to_r: () -> XXX ]), ?Number, ?XXX) -> Number",,"def initialize!(value, sub_second = 0, utc_offset = nil)
+      @value = value
+
+      # Convert Rational(0,1) to 0.
+      @sub_second = sub_second == 0 ? 0 : sub_second
+
+      if utc_offset
+        @utc = utc_offset == :utc
+        @utc_offset = @utc ? 0 : utc_offset
+      else
+        @utc = @utc_offset = nil
+      end
+    end"
+TZInfo::TimestampWithOffset,set_timezone_offset,((TZInfo::Timezone or TZInfo::TimezoneOffset or TZInfo::TimezonePeriod)) -> TZInfo::TimestampWithOffset,,"def set_timezone_offset(timezone_offset)
+      raise ArgumentError, 'timezone_offset must be specified' unless timezone_offset
+      raise ArgumentError, 'timezone_offset.observed_utc_offset does not match self.utc_offset' if utc? || utc_offset != timezone_offset.observed_utc_offset
+      @timezone_offset = timezone_offset
+      self
+    end"
+TZInfo::TimestampWithOffset,to_time,() -> XXX,,"def to_time
+      to = timezone_offset
+      if to
+        new_time(TimeWithOffset).set_timezone_offset(to)
+      else
+        super
+      end
+    end"
+TZInfo::TimestampWithOffset,to_datetime,() -> XXX,,"def to_datetime
+      to = timezone_offset
+      if to
+        new_datetime(DateTimeWithOffset).set_timezone_offset(to)
+      else
+        super
+      end
+    end"
+TZInfo::OffsetTimezonePeriod,initialize,(XXX) -> self,,"def initialize(offset)
+      super
+    end"
+TZInfo::OffsetTimezonePeriod,start_transition,() -> nil,,"def start_transition
+      nil
+    end"
+TZInfo::OffsetTimezonePeriod,end_transition,() -> nil,,"def end_transition
+      nil
+    end"
+TZInfo::OffsetTimezonePeriod,==,(([ kind_of?: (Class) -> XXX ] and [ offset: () -> XXX ])) -> XXX,,"def ==(p)
+      p.kind_of?(OffsetTimezonePeriod) && offset == p.offset
+    end"
+TZInfo::OffsetTimezonePeriod,hash,() -> XXX,,"def hash
+      offset.hash
+    end"
+TZInfo::Country,initialize,((TZInfo::Country or TZInfo::DataSources::CountryInfo)) -> self,,"def initialize(info)
+      @info = info
+    end"
+TZInfo::Country,code,() -> XXX,,"def code
+      @info.code
+    end"
+TZInfo::Country,name,() -> String,,"def name
+      @info.name
+    end"
+TZInfo::Country,to_s,() -> String,,"def to_s
+      name
+    end"
+TZInfo::Country,inspect,() -> String,,"def inspect
+      ""#<#{self.class}: #{@info.code}>""
+    end"
+TZInfo::Country,zone_identifiers,() -> XXX,,"def zone_identifiers
+      zone_info.map(&:identifier)
+    end"
+TZInfo::Country,zones,() -> XXX,,"def zones
+      zone_info.map(&:timezone)
+    end"
+TZInfo::Country,zone_info,() -> XXX,,"def zone_info
+      @info.zones
+    end"
+TZInfo::Country,<=>,((Parlour::RbiGenerator::Arbitrary or Pry::CodeFile or Pry::Command::Whereami or RDL::Type::ComputedType or TZInfo::Country or TZInfo::DataSources::CountryInfo)) -> nil,,"def <=>(c)
+      return nil unless c.is_a?(Country)
+      code <=> c.code
+    end"
+TZInfo::Country,eql?,(XXX) -> (false or true),,"def eql?(c)
+      self == c
+    end"
+TZInfo::Country,hash,() -> XXX,,"def hash
+      code.hash
+    end"
+TZInfo::Country,=~,([ =~: (XXX) -> XXX ]) -> XXX,,"def =~(regexp)
+      regexp =~ code
+    end"
+TZInfo::Country,_dump,(XXX) -> XXX,,"def _dump(limit)
+      code
+    end"
+TZInfo::TimezoneTransition,initialize,"((TZInfo::Timezone or TZInfo::TimezoneOffset or TZInfo::TimezonePeriod), TZInfo::TimezoneOffset, XXX) -> self",,"def initialize(offset, previous_offset, timestamp_value)
+      @offset = offset
+      @previous_offset = previous_offset
+      @timestamp_value = timestamp_value
+    end"
+TZInfo::TimezoneTransition,at,() -> TZInfo::Timestamp,,"def at
+      Timestamp.utc(@timestamp_value)
+    end"
+TZInfo::TimezoneTransition,local_end_at,() -> TZInfo::TimestampWithOffset,,"def local_end_at
+      TimestampWithOffset.new(@timestamp_value, 0, @previous_offset.observed_utc_offset).set_timezone_offset(@previous_offset)
+    end"
+TZInfo::TimezoneTransition,local_start_at,() -> TZInfo::TimestampWithOffset,,"def local_start_at
+      TimestampWithOffset.new(@timestamp_value, 0, @offset.observed_utc_offset).set_timezone_offset(@offset)
+    end"
+TZInfo::TimezoneTransition,==,(TZInfo::TimezoneTransition) -> XXX,,"def ==(tti)
+      tti.kind_of?(TimezoneTransition) &&
+        offset == tti.offset && previous_offset == tti.previous_offset && timestamp_value == tti.timestamp_value
+    end"
+TZInfo::TimezoneTransition,hash,() -> Number,,"def hash
+      [@offset, @previous_offset, @timestamp_value].hash
+    end"
+TZInfo::TimeWithOffset,set_timezone_offset,(nil) -> TZInfo::TimeWithOffset,,"def set_timezone_offset(timezone_offset)
+      raise ArgumentError, 'timezone_offset must be specified' unless timezone_offset
+      localtime(timezone_offset.observed_utc_offset)
+      @timezone_offset = timezone_offset
+      self
+    end"
+TZInfo::TimeWithOffset,dst?,() -> (false or true),,"def dst?
+      to = timezone_offset
+      to ? to.dst? : super
+    end"
+TZInfo::TimeWithOffset,gmtime,() -> TZInfo::TimeWithOffset,,"def gmtime
+      super
+      @timezone_offset = nil
+      self
+    end"
+TZInfo::TimeWithOffset,round,(?XXX) -> XXX,,"def round(ndigits = 0)
+      if_timezone_offset(super) {|o,t| self.class.at(t.to_i, t.subsec * 1_000_000).set_timezone_offset(o) }
+    end"
+TZInfo::TimeWithOffset,to_a,() -> XXX,,"def to_a
+      if_timezone_offset(super) do |o,a|
+        a[8] = o.dst?
+        a[9] = o.abbreviation
+        a
+      end
+    end"
+TZInfo::TimeWithOffset,utc,() -> TZInfo::TimeWithOffset,,"def utc
+      super
+      @timezone_offset = nil
+      self
+    end"
+TZInfo::TimeWithOffset,zone,() -> String,,"def zone
+      to = timezone_offset
+      to ? to.abbreviation : super
+    end"
+TZInfo::TimeWithOffset,to_datetime,() -> XXX,,"def to_datetime
+      if_timezone_offset(super) do |o,dt|
+        offset = dt.offset
+        result = DateTimeWithOffset.jd(dt.jd + dt.day_fraction - offset)
+        result = result.new_offset(offset) unless offset == 0
+        result.set_timezone_offset(o)
+      end
+    end"
+TZInfo::StringDeduper,initialize,() -> self,,"def initialize
+      @strings = create_hash do |h, k|
+        v = k.dup.freeze
+        h[v] = v
+        end
+    end"
+TZInfo::StringDeduper,dedupe,([ frozen?: () -> XXX ]) -> [ frozen?: () -> XXX ],,"def dedupe(string)
+      return string if string.frozen?
+      @strings[string]
+    end"
+TZInfo::StringDeduper,create_hash,"() { XXX } -> Hash<%any, %any>",,"def create_hash(&block)
+      Hash.new(&block)
+    end"
+TZInfo::ConcurrentStringDeduper,create_hash,() { XXX } -> Concurrent::Map,,"def create_hash(&block)
+      Concurrent::Map.new(&block)
+    end"
+TZInfo::DateTimeWithOffset,set_timezone_offset,(nil) -> TZInfo::DateTimeWithOffset,,"def set_timezone_offset(timezone_offset)
+      raise ArgumentError, 'timezone_offset must be specified' unless timezone_offset
+      raise ArgumentError, 'timezone_offset.observed_utc_offset does not match self.utc_offset' if offset * 86400 != timezone_offset.observed_utc_offset
+      @timezone_offset = timezone_offset
+      self
+    end"
+TZInfo::DateTimeWithOffset,to_time,() -> XXX,,"def to_time
+      if_timezone_offset(super) do |o,t|
+        # Ruby 2.4.0 changed the behaviour of to_time so that it preserves the
+        # offset instead of converting to the system local timezone.
+        #
+        # When self has an associated TimezonePeriod, this implementation will
+        # preserve the offset on all versions of Ruby.
+        TimeWithOffset.at(t.to_i, t.subsec * 1_000_000).set_timezone_offset(o)
+      end
+    end"
+TZInfo::DateTimeWithOffset,downto,(XXX) { (XXX) -> XXX } -> XXX,,"def downto(min)
+      if block_given?
+        super {|dt| yield dt.clear_timezone_offset }
+      else
+        enum = super
+        enum.each {|dt| dt.clear_timezone_offset }
+        enum
+      end
+    end"
+TZInfo::DateTimeWithOffset,england,() -> XXX,,"def england
+      # super doesn't call #new_start on MRI, so each method has to be
+      # individually overridden.
+      if_timezone_offset(super) {|o,dt| dt.set_timezone_offset(o) }
+    end"
+TZInfo::DateTimeWithOffset,gregorian,() -> XXX,,"def gregorian
+      # super doesn't call #new_start on MRI, so each method has to be
+      # individually overridden.
+      if_timezone_offset(super) {|o,dt| dt.set_timezone_offset(o) }
+    end"
+TZInfo::DateTimeWithOffset,italy,() -> XXX,,"def italy
+      # super doesn't call #new_start on MRI, so each method has to be
+      # individually overridden.
+      if_timezone_offset(super) {|o,dt| dt.set_timezone_offset(o) }
+    end"
+TZInfo::DateTimeWithOffset,julian,() -> XXX,,"def julian
+      # super doesn't call #new_start on MRI, so each method has to be
+      # individually overridden.
+      if_timezone_offset(super) {|o,dt| dt.set_timezone_offset(o) }
+    end"
+TZInfo::DateTimeWithOffset,new_start,(?XXX) -> XXX,,"def new_start(start = Date::ITALY)
+      if_timezone_offset(super) {|o,dt| dt.set_timezone_offset(o) }
+    end"
+TZInfo::DateTimeWithOffset,step,"(XXX, ?XXX) { (XXX) -> XXX } -> XXX",,"def step(limit, step = 1)
+      if block_given?
+        super {|dt| yield dt.clear_timezone_offset }
+      else
+        enum = super
+        enum.each {|dt| dt.clear_timezone_offset }
+        enum
+      end
+    end"
+TZInfo::DateTimeWithOffset,upto,(XXX) { (XXX) -> XXX } -> XXX,,"def upto(max)
+      if block_given?
+        super {|dt| yield dt.clear_timezone_offset }
+      else
+        enum = super
+        enum.each {|dt| dt.clear_timezone_offset }
+        enum
+      end
+    end"
+TZInfo::DateTimeWithOffset,clear_timezone_offset,() -> TZInfo::DateTimeWithOffset,,"def clear_timezone_offset
+      @timezone_offset = nil
+      self
+    end"
+TZInfo::DataTimezone,period_for,((TZInfo::Timestamp or Time)) -> XXX,,"def period_for(time)
+      raise ArgumentError, 'time must be specified' unless time
+      timestamp = Timestamp.for(time)
+      raise ArgumentError, 'time must have a specified utc_offset' unless timestamp.utc_offset
+      info.period_for(timestamp)
+    end"
+TZInfo::DataTimezone,periods_for_local,((TZInfo::Timestamp or Time)) -> XXX,,"def periods_for_local(local_time)
+      raise ArgumentError, 'local_time must be specified' unless local_time
+      info.periods_for_local(Timestamp.for(local_time, :ignore))
+    end"
+TZInfo::DataTimezone,transitions_up_to,"((TZInfo::Timestamp or Time), ?((TZInfo::Timestamp or Time))) -> XXX",,"def transitions_up_to(to, from = nil)
+      raise ArgumentError, 'to must be specified' unless to
+      to_timestamp = Timestamp.for(to)
+      from_timestamp = from && Timestamp.for(from)
+
+      begin
+        info.transitions_up_to(to_timestamp, from_timestamp)
+      rescue ArgumentError => e
+        raise ArgumentError, e.message.gsub('_timestamp', '')
+      end
+    end"
+TZInfo::DataTimezone,canonical_zone,() -> TZInfo::DataTimezone,,"def canonical_zone
+      self
+    end"
+TZInfo::InfoTimezone,initialize,((TZInfo::DataSources::DataTimezoneInfo and [ identifier: () -> XXX ])) -> self,,"def initialize(info)
+      super()
+      @info = info
+    end"
+TZInfo::InfoTimezone,identifier,() -> XXX,,"def identifier
+      @info.identifier
+    end"
+TZInfo::InfoTimezone,info,() -> TZInfo::DataSources::DataTimezoneInfo,,"def info
+      @info
+    end"
+TZInfo::TimezonePeriod,initialize,((TZInfo::TimezoneOffset or TZInfo::TimezonePeriod)) -> self,,"def initialize(offset)
+      raise ArgumentError, 'offset must be specified' unless offset
+      @offset = offset
+    end"
+TZInfo::TimezonePeriod,start_transition,() -> XXX,,"def start_transition
+      raise_not_implemented(:start_transition)
+    end"
+TZInfo::TimezonePeriod,end_transition,() -> XXX,,"def end_transition
+      raise_not_implemented(:end_transition)
+    end"
+TZInfo::TimezonePeriod,base_utc_offset,() -> XXX,,"def base_utc_offset
+      @offset.base_utc_offset
+    end"
+TZInfo::TimezonePeriod,std_offset,() -> XXX,,"def std_offset
+      @offset.std_offset
+    end"
+TZInfo::TimezonePeriod,abbreviation,() -> XXX,,"def abbreviation
+      @offset.abbreviation
+    end"
+TZInfo::TimezonePeriod,observed_utc_offset,() -> XXX,,"def observed_utc_offset
+      @offset.observed_utc_offset
+    end"
+TZInfo::TimezonePeriod,dst?,() -> (false or true),,"def dst?
+      @offset.dst?
+    end"
+TZInfo::TimezonePeriod,starts_at,() -> nil,,"def starts_at
+      timestamp(start_transition)
+    end"
+TZInfo::TimezonePeriod,ends_at,() -> nil,,"def ends_at
+      timestamp(end_transition)
+    end"
+TZInfo::TimezonePeriod,local_starts_at,() -> TZInfo::TimestampWithOffset,,"def local_starts_at
+      timestamp_with_offset(start_transition)
+    end"
+TZInfo::TimezonePeriod,local_ends_at,() -> TZInfo::TimestampWithOffset,,"def local_ends_at
+      timestamp_with_offset(end_transition)
+    end"
+TZInfo::TimezonePeriod,raise_not_implemented,(XXX) -> XXX,,"def raise_not_implemented(method_name)
+      raise NotImplementedError, ""Subclasses must override #{method_name}""
+    end"
+TZInfo::TimezonePeriod,timestamp,([ at: () -> XXX ]) -> nil,,"def timestamp(transition)
+      transition ? transition.at : nil
+    end"
+TZInfo::TimezonePeriod,timestamp_with_offset,([ at: () -> XXX ]) -> TZInfo::TimestampWithOffset,,"def timestamp_with_offset(transition)
+      transition ? TimestampWithOffset.set_timezone_offset(transition.at, offset) : nil
+    end"
+TZInfo::DataSource,initialize,() -> self,,"def initialize
+      @timezones = Concurrent::Map.new
+    end"
+TZInfo::DataSource,get_timezone_info,(XXX) -> XXX,,"def get_timezone_info(identifier)
+      result = @timezones[identifier]
+
+      unless result
+        # Thread-safety: It is possible that multiple equivalent TimezoneInfo
+        # instances could be created here in concurrently executing threads. The
+        # consequences of this are that the data may be loaded more than once
+        # (depending on the data source). The performance benefit of ensuring
+        # that only a single instance is created is unlikely to be worth the
+        # overhead of only allowing one TimezoneInfo to be loaded at a time.
+
+        result = load_timezone_info(identifier)
+        @timezones[result.identifier] = result
+      end
+
+      result
+    end"
+TZInfo::DataSource,timezone_identifiers,() -> (XXX or XXX),,"def timezone_identifiers
+      # Thread-safety: It is possible that the value of @timezone_identifiers
+      # may be calculated multiple times in concurrently executing threads. It
+      # is not worth the overhead of locking to ensure that
+      # @timezone_identifiers is only calculated once.
+      @timezone_identifiers ||= build_timezone_identifiers
+    end"
+TZInfo::DataSource,data_timezone_identifiers,() -> XXX,,"def data_timezone_identifiers
+      raise_invalid_data_source('data_timezone_identifiers')
+    end"
+TZInfo::DataSource,linked_timezone_identifiers,() -> XXX,,"def linked_timezone_identifiers
+      raise_invalid_data_source('linked_timezone_identifiers')
+    end"
+TZInfo::DataSource,get_country_info,(XXX) -> XXX,,"def get_country_info(code)
+      load_country_info(code)
+    end"
+TZInfo::DataSource,country_codes,() -> XXX,,"def country_codes
+      raise_invalid_data_source('country_codes')
+    end"
+TZInfo::DataSource,to_s,() -> String,,"def to_s
+      ""Default DataSource""
+    end"
+TZInfo::DataSource,inspect,() -> String,,"def inspect
+      ""#<#{self.class}>""
+    end"
+TZInfo::DataSource,load_timezone_info,(XXX) -> XXX,,"def load_timezone_info(identifier)
+      raise_invalid_data_source('load_timezone_info')
+    end"
+TZInfo::DataSource,load_country_info,(XXX) -> XXX,,"def load_country_info(code)
+      raise_invalid_data_source('load_country_info')
+    end"
+TZInfo::DataSource,timezone_identifier_encoding,() -> Encoding,,"def timezone_identifier_encoding
+      Encoding::UTF_8
+    end"
+TZInfo::DataSource,validate_timezone_identifier,(String) -> nil,,"def validate_timezone_identifier(identifier)
+      raise InvalidTimezoneIdentifier, ""Invalid identifier: #{identifier.nil? ? 'nil' : identifier}"" unless identifier.kind_of?(String)
+
+      valid_identifier = try_with_encoding(identifier, timezone_identifier_encoding) {|id| find_timezone_identifier(id) }
+      return valid_identifier if valid_identifier
+
+      raise InvalidTimezoneIdentifier, ""Invalid identifier: #{identifier.encode(Encoding::UTF_8)}""
+    end"
+TZInfo::DataSource,lookup_country_info,"([ []: (XXX) -> XXX ], String, ?[ ==: (XXX) -> XXX ]) -> nil",,"def lookup_country_info(hash, code, encoding = Encoding::UTF_8)
+      raise InvalidCountryCode, ""Invalid country code: #{code.nil? ? 'nil' : code}"" unless code.kind_of?(String)
+
+      info = try_with_encoding(code, encoding) {|c| hash[c] }
+      return info if info
+
+      raise InvalidCountryCode, ""Invalid country code: #{code.encode(Encoding::UTF_8)}""
+    end"
+TZInfo::DataSource,raise_invalid_data_source,(String) -> XXX,,"def raise_invalid_data_source(method_name)
+      raise InvalidDataSource, ""#{method_name} not defined""
+    end"
+TZInfo::DataSource,build_timezone_identifiers,() -> XXX,,"def build_timezone_identifiers
+      data = data_timezone_identifiers
+      linked = linked_timezone_identifiers
+      linked.empty? ? data : (data + linked).sort!.freeze
+    end"
+TZInfo::DataSource,try_with_encoding,"(String, [ ==: (XXX) -> XXX ]) { (String) -> XXX } -> nil",,"def try_with_encoding(string, encoding)
+      result = yield string
+      return result if result
+
+      unless encoding == string.encoding
+        string = string.encode(encoding)
+        yield string
+      end
+    end"
+TZInfo::DataSources::RubyDataSource,to_s,() -> String,,"def to_s
+        ""Ruby DataSource: #{version_info}""
+      end"
+TZInfo::DataSources::RubyDataSource,inspect,() -> String,,"def inspect
+        ""#<TZInfo::DataSources::RubyDataSource: #{version_info}>""
+      end"
+TZInfo::DataSources::RubyDataSource,load_country_info,(String) -> nil,,"def load_country_info(code)
+        lookup_country_info(@countries, code)
+      end"
+TZInfo::DataSources::RubyDataSource,require_index,(String) -> (false or true),,"def require_index(name)
+        require_data(*['indexes', name])
+      end"
+TZInfo::DataSources::RubyDataSource,require_data,(*XXX) -> (false or true),,"def require_data(*file)
+        require(File.join(@base_path, *file))
+      end"
+TZInfo::DataSources::ZoneinfoReader,initialize,([ dedupe: (XXX) -> XXX ]) -> self,,"def initialize(string_deduper)
+        @string_deduper = string_deduper
+      end"
+TZInfo::DataSources::ZoneinfoReader,read,((Pathname or [ to_str: () -> String ])) -> XXX,,"def read(file_path)
+        File.open(file_path, 'rb') { |file| parse(file) }
+      end"
+TZInfo::DataSources::ZoneinfoReader,make_signed_int32,(([ -: (Number) -> XXX ] and [ >=: (Number) -> XXX ])) -> ([ -: (Number) -> XXX ] and [ >=: (Number) -> XXX ]),,"def make_signed_int32(long)
+        long >= 0x80000000 ? long - 0x100000000 : long
+      end"
+TZInfo::DataSources::ZoneinfoReader,make_signed_int64,"([ <<: (Number) -> XXX ], XXX) -> XXX",,"def make_signed_int64(high, low)
+        unsigned = (high << 32) | low
+        unsigned >= 0x8000000000000000 ? unsigned - 0x10000000000000000 : unsigned
+      end"
+TZInfo::DataSources::ZoneinfoReader,check_read,"(([ path: () -> XXX ] and [ read: (XXX) -> XXX ]), XXX) -> XXX",,"def check_read(file, bytes)
+        result = file.read(bytes)
+
+        unless result && result.length == bytes
+          raise InvalidZoneinfoFile, ""Expected #{bytes} bytes reading '#{file.path}', but got #{result ? result.length : 0} bytes""
+        end
+
+        result
+      end"
+TZInfo::DataSources::ZoneinfoReader,derive_offsets,"(([ each: () {(XXX) -> XXX} -> XXX ] and [ empty?: () -> XXX ] and [ reverse_each: () {(XXX) -> XXX} -> XXX ]), ([ <<: (XXX) -> XXX ] and [ []: (XXX) -> XXX ] and [ index: () {(XXX) -> XXX} -> XXX ] and [ length: () -> XXX ])) -> Number",,"def derive_offsets(transitions, offsets)
+        # The first non-DST offset (if there is one) is the offset observed
+        # before the first transition. Fall back to the first DST offset if
+        # there are no non-DST offsets.
+        first_non_dst_offset_index = offsets.index {|o| !o[:is_dst] }
+        first_offset_index = first_non_dst_offset_index || 0
+        return first_offset_index if transitions.empty?
+
+        # Determine the base_utc_offset of the next non-dst offset at each transition.
+        base_utc_offset_from_next = nil
+
+        transitions.reverse_each do |transition|
+          offset = offsets[transition[:offset]]
+          if offset[:is_dst]
+            transition[:base_utc_offset_from_next] = base_utc_offset_from_next if base_utc_offset_from_next
+          else
+            base_utc_offset_from_next = offset[:observed_utc_offset]
+          end
+        end
+
+        base_utc_offset_from_previous = first_non_dst_offset_index ? offsets[first_non_dst_offset_index][:observed_utc_offset] : nil
+        defined_offsets = {}
+
+        transitions.each do |transition|
+          offset_index = transition[:offset]
+          offset = offsets[offset_index]
+          observed_utc_offset = offset[:observed_utc_offset]
+
+          if offset[:is_dst]
+            base_utc_offset_from_next = transition[:base_utc_offset_from_next]
+
+            difference_to_previous = (observed_utc_offset - (base_utc_offset_from_previous || observed_utc_offset)).abs
+            difference_to_next = (observed_utc_offset - (base_utc_offset_from_next || observed_utc_offset)).abs
+
+            base_utc_offset = if difference_to_previous == 3600
+              base_utc_offset_from_previous
+            elsif difference_to_next == 3600
+              base_utc_offset_from_next
+            elsif difference_to_previous > 0 && difference_to_next > 0
+              difference_to_previous < difference_to_next ? base_utc_offset_from_previous : base_utc_offset_from_next
+            elsif difference_to_previous > 0
+              base_utc_offset_from_previous
+            elsif difference_to_next > 0
+              base_utc_offset_from_next
+            else
+              # No difference, assume a 1 hour offset from standard time.
+              observed_utc_offset - 3600
+            end
+
+            if !offset[:base_utc_offset]
+              offset[:base_utc_offset] = base_utc_offset
+              defined_offsets[offset] = offset_index
+            elsif offset[:base_utc_offset] != base_utc_offset
+              # An earlier transition has already derived a different
+              # base_utc_offset. Define a new offset or reuse an existing identically
+              # defined offset.
+              new_offset = offset.dup
+              new_offset[:base_utc_offset] = base_utc_offset
+
+              offset_index = defined_offsets[new_offset]
+
+              unless offset_index
+                offsets << new_offset
+                offset_index = offsets.length - 1
+                defined_offsets[new_offset] = offset_index
+              end
+
+              transition[:offset] = offset_index
+            end
+          else
+            base_utc_offset_from_previous = observed_utc_offset
+          end
+        end
+
+        first_offset_index
+      end"
+TZInfo::DataSources::ZoneinfoReader,parse,"(([ path: () -> XXX ] and [ read: (XXX) -> XXX ] and [ seek: (XXX, Number) -> XXX ])) -> XXX",,"def parse(file)
+        magic, version, ttisgmtcnt, ttisstdcnt, leapcnt, timecnt, typecnt, charcnt =
+          check_read(file, 44).unpack('a4 a x15 NNNNNN')
+
+        if magic != 'TZif'
+          raise InvalidZoneinfoFile, ""The file '#{file.path}' does not start with the expected header.""
+        end
+
+        if version == '2' || version == '3'
+          # Skip the first 32-bit section and read the header of the second 64-bit section
+          file.seek(timecnt * 5 + typecnt * 6 + charcnt + leapcnt * 8 + ttisgmtcnt + ttisstdcnt, IO::SEEK_CUR)
+
+          prev_version = version
+
+          magic, version, ttisgmtcnt, ttisstdcnt, leapcnt, timecnt, typecnt, charcnt =
+            check_read(file, 44).unpack('a4 a x15 NNNNNN')
+
+          unless magic == 'TZif' && (version == prev_version)
+            raise InvalidZoneinfoFile, ""The file '#{file.path}' contains an invalid 64-bit section header.""
+          end
+
+          using_64bit = true
+        elsif version != '3' && version != '2' && version != ""\0""
+          raise InvalidZoneinfoFile, ""The file '#{file.path}' contains a version of the zoneinfo format that is not currently supported.""
+        else
+          using_64bit = false
+        end
+
+        unless leapcnt == 0
+          raise InvalidZoneinfoFile, ""The file '#{file.path}' contains leap second data. TZInfo requires zoneinfo files that omit leap seconds.""
+        end
+
+        transitions = if using_64bit
+          timecnt.times.map do |i|
+            high, low = check_read(file, 8).unpack('NN'.freeze)
+            transition_time = make_signed_int64(high, low)
+            {at: transition_time}
+          end
+        else
+          timecnt.times.map do |i|
+            transition_time = make_signed_int32(check_read(file, 4).unpack('N'.freeze)[0])
+            {at: transition_time}
+          end
+        end
+
+        check_read(file, timecnt).unpack('C*'.freeze).each_with_index do |localtime_type, i|
+          raise InvalidZoneinfoFile, ""Invalid offset referenced by transition in file '#{file.path}'."" if localtime_type >= typecnt
+          transitions[i][:offset] = localtime_type
+        end
+
+        offsets = typecnt.times.map do |i|
+          gmtoff, isdst, abbrind = check_read(file, 6).unpack('NCC'.freeze)
+          gmtoff = make_signed_int32(gmtoff)
+          isdst = isdst == 1
+          {observed_utc_offset: gmtoff, is_dst: isdst, abbr_index: abbrind}
+        end
+
+        abbrev = check_read(file, charcnt)
+
+        # Derive the offsets from standard time (std_offset).
+        first_offset_index = derive_offsets(transitions, offsets)
+
+        offsets = offsets.map do |o|
+          observed_utc_offset = o[:observed_utc_offset]
+          base_utc_offset = o[:base_utc_offset]
+
+          if base_utc_offset
+            # DST offset with base_utc_offset derived by derive_offsets.
+            std_offset = observed_utc_offset - base_utc_offset
+          elsif o[:is_dst]
+            # DST offset unreferenced by a transition (offset in use before the
+            # first transition). No derived base UTC offset, so assume 1 hour
+            # DST.
+            base_utc_offset = observed_utc_offset - 3600
+            std_offset = 3600
+          else
+            # Non-DST offset.
+            base_utc_offset = observed_utc_offset
+            std_offset = 0
+          end
+
+          abbrev_start = o[:abbr_index]
+          raise InvalidZoneinfoFile, ""Abbreviation index is out of range in file '#{file.path}'."" unless abbrev_start < abbrev.length
+
+          abbrev_end = abbrev.index(""\0"", abbrev_start)
+          raise InvalidZoneinfoFile, ""Missing abbreviation null terminator in file '#{file.path}'."" unless abbrev_end
+
+          abbr = @string_deduper.dedupe(abbrev[abbrev_start...abbrev_end].force_encoding(Encoding::UTF_8).untaint)
+
+          TimezoneOffset.new(base_utc_offset, std_offset, abbr)
+        end
+
+        first_offset = offsets[first_offset_index]
+
+
+        if transitions.empty?
+          first_offset
+        else
+          previous_offset = first_offset
+          previous_at = nil
+
+          transitions.map do |t|
+            offset = offsets[t[:offset]]
+            at = t[:at]
+            raise InvalidZoneinfoFile, ""Transition at #{at} is not later than the previous transition at #{previous_at} in file '#{file.path}'."" if previous_at && RDL.type_cast(previous_at, ""Integer"")  >= at
+            tt = TimezoneTransition.new(offset, previous_offset, at)
+            previous_offset = offset
+            previous_at = at
+            tt
+          end
+        end
+      end"
+TZInfo::DataSources::DataTimezoneInfo,period_for,(XXX) -> XXX,,"def period_for(timestamp)
+        raise_not_implemented('period_for')
+      end"
+TZInfo::DataSources::DataTimezoneInfo,periods_for_local,(XXX) -> XXX,,"def periods_for_local(local_timestamp)
+        raise_not_implemented('periods_for_local')
+      end"
+TZInfo::DataSources::DataTimezoneInfo,transitions_up_to,"(XXX, ?XXX) -> XXX",,"def transitions_up_to(to_timestamp, from_timestamp = nil)
+        raise_not_implemented('transitions_up_to')
+      end"
+TZInfo::DataSources::DataTimezoneInfo,create_timezone,() -> TZInfo::DataTimezone,,"def create_timezone
+        DataTimezone.new(self)
+      end"
+TZInfo::DataSources::DataTimezoneInfo,raise_not_implemented,(String) -> XXX,,"def raise_not_implemented(method_name)
+        raise NotImplementedError, ""Subclasses must override #{method_name}""
+      end"
+TZInfo::DataSources::ConstantOffsetDataTimezoneInfo,initialize,"([ freeze: () -> XXX ], XXX) -> self",,"def initialize(identifier, constant_offset)
+        super(identifier)
+        raise ArgumentError, 'constant_offset must be specified' unless constant_offset
+        @constant_offset = constant_offset
+      end"
+TZInfo::DataSources::ConstantOffsetDataTimezoneInfo,period_for,(XXX) -> TZInfo::OffsetTimezonePeriod,,"def period_for(timestamp)
+        constant_period
+      end"
+TZInfo::DataSources::ConstantOffsetDataTimezoneInfo,periods_for_local,(XXX) -> [TZInfo::OffsetTimezonePeriod],,"def periods_for_local(local_timestamp)
+        [constant_period]
+      end"
+TZInfo::DataSources::ConstantOffsetDataTimezoneInfo,transitions_up_to,"(XXX, ?XXX) -> Array<XXX>",,"def transitions_up_to(to_timestamp, from_timestamp = nil)
+        []
+      end"
+TZInfo::DataSources::ConstantOffsetDataTimezoneInfo,constant_period,() -> TZInfo::OffsetTimezonePeriod,,"def constant_period
+        OffsetTimezonePeriod.new(@constant_offset)
+      end"
+TZInfo::DataSources::CountryInfo,initialize,"([ freeze: () -> XXX ], String, [ freeze: () -> XXX ]) -> self",,"def initialize(code, name, zones)
+        raise ArgumentError, 'code must be specified' unless code
+        raise ArgumentError, 'name must be specified' unless name
+        raise ArgumentError, 'zones must be specified' unless zones
+        @code = code.freeze
+        @name = name.freeze
+        @zones = zones.freeze
+      end"
+TZInfo::DataSources::CountryInfo,inspect,() -> String,,"def inspect
+        ""#<#{self.class}: #@code>""
+      end"
+TZInfo::DataSources::TransitionsDataTimezoneInfo,initialize,"([ freeze: () -> XXX ], ([ empty?: () -> XXX ] and [ freeze: () -> XXX ])) -> self",,"def initialize(identifier, transitions)
+        super(identifier)
+        raise ArgumentError, 'transitions must be specified' unless transitions
+        raise ArgumentError, 'transitions must not be an empty Array' if transitions.empty?
+        @transitions = transitions.freeze
+      end"
+TZInfo::DataSources::TransitionsDataTimezoneInfo,period_for,(TZInfo::Timestamp) -> TZInfo::TransitionsTimezonePeriod,,"def period_for(timestamp)
+        raise ArgumentError, 'timestamp must be specified' unless timestamp
+        raise ArgumentError, 'timestamp must have a specified utc_offset' unless timestamp.utc_offset
+
+        timestamp_value = timestamp.value
+
+        index = find_minimum_transition {|t| t.timestamp_value >= timestamp_value }
+
+        if index
+          transition = @transitions[index]
+
+          if transition.timestamp_value == timestamp_value
+            # timestamp occurs within the second of the found transition, so is
+            # the transition that starts the period.
+            start_transition = transition
+            end_transition = @transitions[index + 1]
+          else
+            # timestamp occurs before the second of the found transition, so is
+            # the transition that ends the period.
+            start_transition = index == 0 ? nil : @transitions[index - 1]
+            end_transition = transition
+          end
+        else
+          start_transition = @transitions.last
+          end_transition = nil
+        end
+
+        TransitionsTimezonePeriod.new(start_transition, end_transition)
+      end"
+TZInfo::DataSources::TransitionsDataTimezoneInfo,periods_for_local,(TZInfo::Timestamp) -> Array<TZInfo::TransitionsTimezonePeriod>,,"def periods_for_local(local_timestamp)
+        raise ArgumentError, 'local_timestamp must be specified' unless local_timestamp
+        raise ArgumentError, 'local_timestamp must have an unspecified utc_offset' if local_timestamp.utc_offset
+
+        local_timestamp_value = local_timestamp.value
+        latest_possible_utc_value = local_timestamp_value + 86400
+        earliest_possible_utc_value = local_timestamp_value - 86400
+
+        # Find the index of the first transition that occurs after a latest
+        # possible UTC representation of the local timestamp and then search
+        # backwards until an earliest possible UTC representation.
+
+        index = find_minimum_transition {|t| t.timestamp_value >= latest_possible_utc_value }
+
+        # No transitions after latest_possible_utc_value, set to max index + 1
+        # to search backwards including the period after the last transition
+        index = @transitions.length unless index
+
+        result = []
+
+        index.downto(0) do |i|
+          start_transition = i > 0 ? @transitions[i - 1] : nil
+          end_transition = @transitions[i]
+          offset = start_transition ? RDL.type_cast(start_transition, ""TZInfo::TimezoneTransition"").offset : end_transition.previous_offset
+          utc_timestamp_value = local_timestamp_value - offset.observed_utc_offset
+
+          # It is not necessary to compare the sub-seconds because a timestamp
+          # is in the period if is >= the start transition (sub-seconds would
+          # make == become >) and if it is < the end transition (which
+          # sub-seconds cannot affect).
+          if (!start_transition || utc_timestamp_value >= RDL.type_cast(start_transition, ""TZInfo::TimezoneTransition"").timestamp_value) && (!end_transition || utc_timestamp_value < end_transition.timestamp_value)
+            result << TransitionsTimezonePeriod.new(start_transition, end_transition)
+          elsif end_transition && end_transition.timestamp_value < earliest_possible_utc_value
+            break
+          end
+        end
+
+        result.reverse!
+      end"
+TZInfo::DataSources::TransitionsDataTimezoneInfo,transitions_up_to,"(TZInfo::Timestamp, ?TZInfo::Timestamp) -> Array<XXX>",,"def transitions_up_to(to_timestamp, from_timestamp = nil)
+        raise ArgumentError, 'to_timestamp must be specified' unless to_timestamp
+        raise ArgumentError, 'to_timestamp must have a specified utc_offset' unless to_timestamp.utc_offset
+
+        if from_timestamp
+          raise ArgumentError, 'from_timestamp must have a specified utc_offset' unless from_timestamp.utc_offset
+          raise ArgumentError, 'to_timestamp must be greater than from_timestamp' if to_timestamp <= from_timestamp
+        end
+
+        if from_timestamp
+          from_index = find_minimum_transition {|t| transition_on_or_after_timestamp?(t, from_timestamp) }
+          return [] unless from_index
+        else
+          from_index = 0
+        end
+
+        to_index = find_minimum_transition {|t| transition_on_or_after_timestamp?(t, to_timestamp) }
+
+        if to_index
+          return [] if to_index < 1
+          to_index -= 1
+        else
+          to_index = -1
+        end
+
+        @transitions[from_index..to_index]
+      end"
+TZInfo::DataSources::TransitionsDataTimezoneInfo,transition_on_or_after_timestamp?,"(TZInfo::TimezoneTransition, TZInfo::Timestamp) -> (false or true)",,"def transition_on_or_after_timestamp?(transition, timestamp)
+        transition_timestamp_value = transition.timestamp_value
+        timestamp_value = timestamp.value
+        transition_timestamp_value > timestamp_value || transition_timestamp_value == timestamp_value && timestamp.sub_second == 0
+      end"
+TZInfo::DataSources::TimezoneInfo,initialize,([ freeze: () -> XXX ]) -> self,,"def initialize(identifier)
+        raise ArgumentError, 'identifier must be specified' unless identifier
+        @identifier = identifier.freeze
+      end"
+TZInfo::DataSources::TimezoneInfo,inspect,() -> String,,"def inspect
+        ""#<#{self.class}: #@identifier>""
+      end"
+TZInfo::DataSources::TimezoneInfo,create_timezone,() -> XXX,,"def create_timezone
+        raise_not_implemented('create_timezone')
+      end"
+TZInfo::DataSources::TimezoneInfo,raise_not_implemented,(String) -> XXX,,"def raise_not_implemented(method_name)
+        raise NotImplementedError, ""Subclasses must override #{method_name}""
+      end"
+TZInfo::DataSources::LinkedTimezoneInfo,initialize,"([ freeze: () -> XXX ], [ freeze: () -> XXX ]) -> self",,"def initialize(identifier, link_to_identifier)
+        super(identifier)
+        raise ArgumentError, 'link_to_identifier must be specified' unless link_to_identifier
+        @link_to_identifier = link_to_identifier.freeze
+      end"
+TZInfo::DataSources::LinkedTimezoneInfo,create_timezone,() -> TZInfo::LinkedTimezone,,"def create_timezone
+        LinkedTimezone.new(self)
+      end"
+TZInfo::Format1::CountryDefiner,initialize,"([ dedupe: (XXX) -> XXX ], [ dedupe: (XXX) -> XXX ]) -> self",,"def initialize(identifier_deduper, description_deduper)
+        super(nil, identifier_deduper, description_deduper)
+      end"
+TZInfo::Format1::TimezoneDefiner,offset,"(Number, [ +: (XXX) -> XXX ], Number, [ to_s: () -> String ]) -> TZInfo::TimezoneOffset",,"def offset(id, utc_offset, std_offset, abbreviation)
+        super(id, utc_offset, std_offset, abbreviation.to_s)
+      end"
+TZInfo::Format1::TimezoneDefiner,transition,"(XXX, XXX, Number, XXX, ?XXX, ?[ !: () -> XXX ]) -> XXX",,"def transition(year, month, offset_id, timestamp_value, datetime_numerator = nil, datetime_denominator = nil)
+        raise ArgumentError, 'DateTime-only transitions are not supported' if datetime_numerator && !datetime_denominator
+        super(offset_id, timestamp_value)
+      end"
+TZInfo::Format2::CountryDefiner,initialize,"(Hash<XXX, TZInfo::CountryTimezone>, [ dedupe: (XXX) -> XXX ], [ dedupe: (XXX) -> XXX ]) -> self",,"def initialize(shared_timezones, identifier_deduper, description_deduper)
+        @shared_timezones = shared_timezones
+        @identifier_deduper = identifier_deduper
+        @description_deduper = description_deduper
+        @timezones = []
+      end"
+TZInfo::Format2::CountryDefiner,timezone,"(XXX, ?Numeric, ?Numeric, ?Numeric, ?Numeric, ?[ freeze: () -> XXX ]) -> XXX",,"def timezone(identifier_or_reference, latitude_numerator = nil,
+                  latitude_denominator = nil, longitude_numerator = nil,
+                  longitude_denominator = nil, description = nil)
+        if latitude_numerator
+          unless latitude_denominator && longitude_numerator && longitude_denominator
+            raise ArgumentError, 'Either just a reference should be supplied, or the identifier, latitude and longitude must all be specified'
+          end
+
+          # Dedupe non-frozen literals from format 1 on all Ruby versions and
+          # format 2 on Ruby < 2.3 (without frozen_string_literal support).
+
+          @timezones << CountryTimezone.new(@identifier_deduper.dedupe(identifier_or_reference),
+            Rational(latitude_numerator, latitude_denominator),
+            Rational(longitude_numerator, longitude_denominator), description && @description_deduper.dedupe(description))
+        else
+          shared_timezone = @shared_timezones[identifier_or_reference]
+          raise ArgumentError, ""Unknown shared timezone: #{identifier_or_reference}"" unless shared_timezone
+          @timezones << shared_timezone
+        end
+      end"
+TZInfo::Format2::TimezoneDefiner,initialize,([ dedupe: (XXX) -> XXX ]) -> self,,"def initialize(string_deduper)
+        @string_deduper = string_deduper
+        @offsets = RDL.type_cast({}, ""Hash<Integer, TZInfo::TimezoneOffset>"")
+        @transitions = []
+      end"
+TZInfo::Format2::TimezoneDefiner,first_offset,() -> XXX,,"def first_offset
+        first = @offsets.first
+        first && first.last
+      end"
+TZInfo::Format2::TimezoneDefiner,offset,"(Number, [ +: (XXX) -> XXX ], Number, [ freeze: () -> XXX ]) -> TZInfo::TimezoneOffset",,"def offset(id, base_utc_offset, std_offset, abbreviation)
+        raise ArgumentError, 'An offset has already been defined with the given id' if @offsets.has_key?(id)
+
+        # Dedupe non-frozen literals from format 1 on all Ruby versions and
+        # format 2 on Ruby < 2.3 (without frozen_string_literal support).
+        abbreviation = @string_deduper.dedupe(abbreviation)
+
+        offset = TimezoneOffset.new(base_utc_offset, std_offset, abbreviation)
+        @offsets[id] = offset
+        @previous_offset ||= offset
+      end"
+TZInfo::Format2::TimezoneDefiner,transition,"(Number, XXX) -> XXX",,"def transition(offset_id, timestamp_value)
+        offset = @offsets[offset_id]
+        raise ArgumentError, 'offset_id has not been defined' unless offset
+        raise ArgumentError, 'timestamp is not greater than the timestamp of the previously defined transition' if !@transitions.empty? && @transitions.last.timestamp_value >= timestamp_value
+        @transitions << TimezoneTransition.new(offset, @previous_offset, timestamp_value)
+        @previous_offset = offset
+      end"
+TZInfo::Format2::TimezoneDefiner,subsequent_rules,(*XXX) -> nil,,"def subsequent_rules(*args)
+      end"
+TZInfo::Format2::CountryIndexDefiner,initialize,"([ dedupe: (XXX) -> XXX ], [ dedupe: (XXX) -> XXX ]) -> self",,"def initialize(identifier_deduper, description_deduper)
+        @identifier_deduper = identifier_deduper
+        @description_deduper = description_deduper
+        @shared_timezones = {}
+        @countries = {}
+      end"
+TZInfo::Format2::CountryIndexDefiner,timezone,"(XXX, XXX, Numeric, Numeric, Numeric, Numeric, ?[ freeze: () -> XXX ]) -> XXX",,"def timezone(reference, identifier, latitude_numerator, latitude_denominator,
+                    longitude_numerator, longitude_denominator, description = nil)
+        # Dedupe non-frozen literals from format 1 on all Ruby versions and
+        # format 2 on Ruby < 2.3 (without frozen_string_literal support).
+        @shared_timezones[reference] = CountryTimezone.new(@identifier_deduper.dedupe(identifier),
+          Rational(latitude_numerator, latitude_denominator),
+          Rational(longitude_numerator, longitude_denominator), description && @description_deduper.dedupe(description))
+      end"
+TZInfo::Format2::CountryIndexDefiner,country,"([ freeze: () -> XXX ], String) { (TZInfo::Format2::CountryDefiner) -> XXX } -> XXX",,"def country(code, name)
+        timezones = if block_given?
+          definer = CountryDefiner.new(@shared_timezones, @identifier_deduper, @description_deduper)
+          yield definer
+          definer.timezones
+        else
+          []
+        end
+        @countries[code.freeze] = DataSources::CountryInfo.new(code, name, timezones)
+      end"
+TZInfo::Format2::TimezoneIndexDefiner,initialize,((TZInfo::StringDeduper or TZInfo::UnaryMinusGlobalStringDeduper)) -> self,,"def initialize(string_deduper)
+        @string_deduper = string_deduper
+        @data_timezones = []
+        @linked_timezones = []
+      end"
+TZInfo::Format2::TimezoneIndexDefiner,data_timezone,(XXX) -> XXX,,"def data_timezone(identifier)
+        # Dedupe non-frozen literals from format 1 on all Ruby versions and
+        # format 2 on Ruby < 2.3 (without frozen_string_literal support).
+        @data_timezones << @string_deduper.dedupe(identifier)
+      end"
+TZInfo::Format2::TimezoneIndexDefiner,linked_timezone,(XXX) -> XXX,,"def linked_timezone(identifier)
+        # Dedupe non-frozen literals from format 1 on all Ruby versions and
+        # format 2 on Ruby < 2.3 (without frozen_string_literal support).
+        @linked_timezones << @string_deduper.dedupe(identifier)
+      end"
+[s]TZInfo::Timezone,default_dst=,(([ !: () -> XXX ] and [ nil?: () -> XXX ])) -> nil,,"def default_dst=(value)
+        @@default_dst = value.nil? ? nil : !!value
+      end"
+[s]TZInfo::Timezone,default_dst,() -> nil,,"def default_dst
+        @@default_dst
+      end"
+[s]TZInfo::Timezone,get,(XXX) -> XXX,,"def get(identifier)
+        data_source.get_timezone_info(identifier).create_timezone
+      end"
+[s]TZInfo::Timezone,get_proxy,(XXX) -> TZInfo::TimezoneProxy,,"def get_proxy(identifier)
+        TimezoneProxy.new(identifier)
+      end"
+[s]TZInfo::Timezone,all,() -> XXX,,"def all
+        get_proxies(all_identifiers)
+      end"
+[s]TZInfo::Timezone,all_identifiers,() -> XXX,,"def all_identifiers
+        data_source.timezone_identifiers
+      end"
+[s]TZInfo::Timezone,all_data_zones,() -> XXX,,"def all_data_zones
+        get_proxies(all_data_zone_identifiers)
+      end"
+[s]TZInfo::Timezone,all_data_zone_identifiers,() -> XXX,,"def all_data_zone_identifiers
+        data_source.data_timezone_identifiers
+      end"
+[s]TZInfo::Timezone,all_linked_zones,() -> XXX,,"def all_linked_zones
+        get_proxies(all_linked_zone_identifiers)
+      end"
+[s]TZInfo::Timezone,all_linked_zone_identifiers,() -> XXX,,"def all_linked_zone_identifiers
+        data_source.linked_timezone_identifiers
+      end"
+[s]TZInfo::Timezone,all_country_zones,() -> XXX,,"def all_country_zones
+        Country.all.map(&:zones).flatten.uniq
+      end"
+[s]TZInfo::Timezone,all_country_zone_identifiers,() -> XXX,,"def all_country_zone_identifiers
+        Country.all.map(&:zone_identifiers).flatten.uniq
+      end"
+[s]TZInfo::Timezone,get_proxies,([ collect: () {(XXX) -> XXX} -> XXX ]) -> XXX,,"def get_proxies(identifiers)
+        identifiers.collect {|identifier| get_proxy(identifier)}
+      end"
+[s]TZInfo::Timezone,data_source,() -> (TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource),,"def data_source
+        DataSource.get
+      end"
+[s]TZInfo::Timezone,_load,(XXX) -> XXX,,"def self._load(data)
+      Timezone.get(data)
+    end"
+[s]TZInfo::TimezoneProxy,_load,(XXX) -> TZInfo::TimezoneProxy,,"def self._load(data)
+      TimezoneProxy.new(data)
+    end"
+[s]TZInfo::Timestamp,create,"(Number, ?([ +: (Number) -> XXX ] and [ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?Number, ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?([ <: (Number) -> XXX ] and [ >: (Number) -> XXX ] and [ kind_of?: (Class) -> XXX ]), ?XXX, ?[ kind_of?: (Class) -> XXX ]) -> TZInfo::Timestamp",,"def create(year, month = 1, day = 1, hour = 0, minute = 0, second = 0, sub_second = 0, utc_offset = nil)
+        raise ArgumentError, 'year must be an Integer' unless year.kind_of?(Integer)
+        raise ArgumentError, 'month must be an Integer' unless month.kind_of?(Integer)
+        raise ArgumentError, 'day must be an Integer' unless day.kind_of?(Integer)
+        raise ArgumentError, 'hour must be an Integer' unless hour.kind_of?(Integer)
+        raise ArgumentError, 'minute must be an Integer' unless minute.kind_of?(Integer)
+        raise ArgumentError, 'second must be an Integer' unless second.kind_of?(Integer)
+        raise RangeError, 'month must be between 1 and 12' if month < 1 || month > 12
+        raise RangeError, 'day must be between 1 and 31' if day < 1 || day > 31
+        raise RangeError, 'hour must be between 0 and 23' if hour < 0 || hour > 23
+        raise RangeError, 'minute must be between 0 and 59' if minute < 0 || minute > 59
+        raise RangeError, 'second must be between 0 and 59' if second < 0 || second > 59
+
+        # Based on days_from_civil from https://howardhinnant.github.io/date_algorithms.html#days_from_civil
+        after_february = month > 2
+        year -= 1 unless after_february
+        era = year / 400
+        year_of_era = year - era * 400
+        day_of_year = (153 * (month + (after_february ? -3 : 9)) + 2) / 5 + day - 1
+        day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year
+        days_since_epoch = era * 146097 + day_of_era - 719468
+        value = ((days_since_epoch * 24 + hour) * 60 + minute) * 60 + second
+        value -= utc_offset if utc_offset.kind_of?(Integer)
+
+        new(value, sub_second, utc_offset)
+      end"
+[s]TZInfo::Timestamp,for,"((TZInfo::Timestamp or Time), ?XXX) { ((XXX or XXX or XXX or XXX)) -> TZInfo::Timestamp } -> TZInfo::Timestamp",,"def for(value, offset = :preserve)
+        raise ArgumentError, 'value must be specified' unless value
+
+        case offset
+          when :ignore
+            ignore_offset = true
+            target_utc_offset = nil
+          when :treat_as_utc
+            ignore_offset = true
+            target_utc_offset = :utc
+          when :preserve
+            ignore_offset = false
+            target_utc_offset = nil
+          else
+            raise ArgumentError, 'offset must be :preserve, :ignore or :treat_as_utc'
+        end
+
+        time_like = false
+        timestamp = case value
+          when Time
+            for_time(value, ignore_offset, target_utc_offset)
+          when DateTime
+            for_datetime(value, ignore_offset, target_utc_offset)
+          when Timestamp
+            for_timestamp(value, ignore_offset, target_utc_offset)
+          else
+            raise ArgumentError, ""#{value.class} values are not supported"" unless is_time_like?(value)
+            time_like = true
+            for_time_like(value, ignore_offset, target_utc_offset)
+        end
+
+        if block_given?
+          result = yield timestamp
+          result = RDL.type_cast(result, ""TZInfo::Timestamp"")
+          raise ArgumentError, 'block must return a Timestamp' unless result.kind_of?(Timestamp)
+
+          case value
+            when Time
+              result.to_time
+            when DateTime
+              result.to_datetime
+            else # A Time-like value or a Timestamp
+              time_like ? result.to_time : result
+          end
+        else
+          timestamp
+        end
+          end"
+[s]TZInfo::Timestamp,utc,"(XXX, ?XXX) -> TZInfo::Timestamp",,"def utc(value, sub_second = 0)
+        new(value, sub_second, :utc)
+      end"
+[s]TZInfo::Timestamp,new!,"(XXX, ?XXX, ?XXX) -> TZInfo::Timestamp",,"def new!(value, sub_second = 0, utc_offset = nil)
+        result = allocate
+        result.send(:initialize!, value, sub_second, utc_offset)
+        result
+      end"
+[s]TZInfo::Timestamp,for_time,"(Time, XXX, XXX) -> TZInfo::Timestamp",,"def for_time(time, ignore_offset, target_utc_offset)
+        value = time.to_i
+        sub_second = time.subsec
+
+        if ignore_offset
+          utc_offset = target_utc_offset
+          value += time.utc_offset
+        elsif time.utc?
+          utc_offset = :utc
+        else
+          utc_offset = time.utc_offset
+        end
+
+        new!(value, sub_second, utc_offset)
+      end"
+[s]TZInfo::Timestamp,for_datetime,"(DateTime, XXX, XXX) -> TZInfo::Timestamp",,"def for_datetime(datetime, ignore_offset, target_utc_offset)
+        value = (datetime.jd - JD_EPOCH) * 86400 + datetime.sec + datetime.min * 60 + datetime.hour * 3600
+        sub_second = datetime.sec_fraction
+
+        if ignore_offset
+          utc_offset = target_utc_offset
+        else
+          utc_offset = (datetime.offset * 86400).to_i
+          value -= utc_offset
+        end
+
+        new!(value, sub_second, utc_offset)
+      end"
+[s]TZInfo::Timestamp,for_timestamp,"(TZInfo::Timestamp, XXX, [ ==: (:utc) -> XXX ]) -> TZInfo::Timestamp",,"def for_timestamp(timestamp, ignore_offset, target_utc_offset)
+        if ignore_offset
+          if target_utc_offset
+            unless target_utc_offset == :utc && timestamp.utc? || timestamp.utc_offset == target_utc_offset
+              return new!(timestamp.value + (timestamp.utc_offset || 0), timestamp.sub_second, target_utc_offset)
+            end
+          elsif timestamp.utc_offset
+            return new!(timestamp.value + timestamp.utc_offset, timestamp.sub_second)
+          end
+        end
+
+        unless timestamp.instance_of?(Timestamp)
+          # timestamp is identical in value, sub_second and utc_offset but is a
+          # subclass (i.e. TimestampWithOffset). Return a new Timestamp
+          # instance.
+          return new!(timestamp.value, timestamp.sub_second, timestamp.utc? ? :utc : timestamp.utc_offset)
+        end
+
+        timestamp
+      end"
+[s]TZInfo::Timestamp,is_time_like?,(([ respond_to?: (:subsec) -> XXX ] and [ respond_to?: (:to_i) -> XXX ])) -> (false or true),,"def is_time_like?(value)
+        value.respond_to?(:to_i) && value.respond_to?(:subsec)
+      end"
+[s]TZInfo::Timestamp,for_time_like,"((TZInfo::Timestamp or Time), XXX, XXX) -> TZInfo::Timestamp",,"def for_time_like(time_like, ignore_offset, target_utc_offset)
+        value = time_like.to_i
+        sub_second = RDL.type_cast(time_like, ""Time"", force: true).subsec.to_r
+
+        if ignore_offset
+          utc_offset = target_utc_offset
+          value += time_like.utc_offset.to_i if time_like.respond_to?(:utc_offset)
+        elsif time_like.respond_to?(:utc_offset)
+          utc_offset = time_like.utc_offset.to_i
+        else
+          utc_offset = 0
+        end
+
+        new(value, sub_second, utc_offset)
+      end"
+[s]TZInfo::TimestampWithOffset,set_timezone_offset,"(TZInfo::Timestamp, (TZInfo::Timezone or TZInfo::TimezoneOffset or TZInfo::TimezonePeriod)) -> TZInfo::TimestampWithOffset",,"def self.set_timezone_offset(timestamp, timezone_offset)
+      raise ArgumentError, 'timestamp must be specified' unless timestamp
+      raise ArgumentError, 'timezone_offset must be specified' unless timezone_offset
+      RDL.type_cast(new!(timestamp.value, timestamp.sub_second, timezone_offset.observed_utc_offset), ""TZInfo::TimestampWithOffset"").set_timezone_offset(timezone_offset)
+    end"
+[s]TZInfo::Country,get,(XXX) -> TZInfo::Country,,"def get(code)
+        Country.new(data_source.get_country_info(code))
+      end"
+[s]TZInfo::Country,all_codes,() -> XXX,,"def all_codes
+        data_source.country_codes
+      end"
+[s]TZInfo::Country,all,() -> XXX,,"def all
+        data_source.country_codes.collect {|code| get(code)}
+      end"
+[s]TZInfo::Country,data_source,() -> (TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource),,"def data_source
+        DataSource.get
+      end"
+[s]TZInfo::Country,_load,(XXX) -> TZInfo::Country,,"def self._load(data)
+      Country.get(data)
+    end"
+[s]TZInfo::DataSource,get,() -> (TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource),,"def get
+        # If a DataSource hasn't been manually set when the first request is
+        # made to obtain a DataSource, then a default data source is created.
+        #
+        # This is done at the first request rather than when TZInfo is loaded to
+        # avoid unnecessary attempts to find a suitable DataSource.
+        #
+        # A `Mutex` is used to ensure that only a single default instance is
+        # created (this avoiding the possibility of retaining two copies of the
+        # same data in memory).
+
+        unless @@instance
+          @@default_mutex.synchronize do
+            set(create_default_data_source) unless @@instance
+          end
+        end
+
+        @@instance
+      end"
+[s]TZInfo::DataSource,set,"((TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource), *XXX) -> (TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource)",,"def set(data_source_or_type, *args)
+        if data_source_or_type.kind_of?(DataSource)
+          @@instance = data_source_or_type
+        elsif data_source_or_type == :ruby
+          @@instance = DataSources::RubyDataSource.new
+        elsif data_source_or_type == :zoneinfo
+          @@instance = DataSources::ZoneinfoDataSource.new(*args)
+        else
+          raise ArgumentError, 'data_source_or_type must be a DataSource instance or a data source type (:ruby or :zoneinfo)'
+        end
+      end"
+[s]TZInfo::DataSource,create_default_data_source,() -> (TZInfo::DataSources::RubyDataSource or TZInfo::DataSources::ZoneinfoDataSource),,"def create_default_data_source
+        has_tzinfo_data = false
+
+        begin
+          require 'tzinfo/data'
+          has_tzinfo_data = true
+        rescue LoadError
+        end
+
+        return DataSources::RubyDataSource.new if has_tzinfo_data
+
+        begin
+          return DataSources::ZoneinfoDataSource.new
+        rescue DataSources::ZoneinfoDirectoryNotFound
+          raise DataSourceNotFound, ""No source of timezone data could be found.\nPlease refer to https://tzinfo.github.io/datasourcenotfound for help resolving this error.""
+        end
+      end"
