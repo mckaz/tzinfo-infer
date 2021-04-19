@@ -57,7 +57,8 @@ module TZInfo
   private_constant :ConcurrentStringDeduper
 
 
-  string_unary_minus_does_dedupe = if '0'.respond_to?(:-@)
+  string_unary_minus_does_dedupe = 
+    if '0'.respond_to?(:-@)
     # :nocov_no_string_-@:
     s1 = -('0'.dup)
     s2 = -('0'.dup)

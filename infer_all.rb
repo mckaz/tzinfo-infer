@@ -1,8 +1,10 @@
-require './lib/tzinfo'
-#require '../type-infer/rdl/lib/rdl'
 require 'rdl'
 RDL::Config.instance.number_mode = true
 require 'types/core'
+require './lib/tzinfo'
+#require '../type-infer/rdl/lib/rdl'
+
+require './orig_types'
 
 RDL.no_infer_meth TZInfo::TimeWithOffset, :localtime # some issue about varargs
 RDL.no_infer_meth TZInfo::Timestamp, :initialize
@@ -110,4 +112,4 @@ RDL.infer_file "./lib/tzinfo/version.rb"
 #RDL.infer_file "./lib/tzinfo/with_offset.rb"
 =end
 
-RDL.do_infer :files, num_times: 11
+RDL.do_infer :files, num_times: 1

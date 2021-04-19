@@ -1,7 +1,7 @@
 # coding: utf-8
 require './lib/tzinfo'
-require '../type-infer/rdl/lib/rdl'
-require 'types/core'
+#require '../type-infer/rdl/lib/rdl'
+#require 'types/core'
 
 
 

@@ -19,7 +19,7 @@ module TZInfo
       #   when deduping abbreviations.
       def initialize(string_deduper)
         @string_deduper = string_deduper
-        @offsets = RDL.type_cast({}, "Hash<Integer, TZInfo::TimezoneOffset>")
+        @offsets = {}
         @transitions = []
       end
 

@@ -6,6 +6,7 @@ module TZInfo
 end
 
 require 'rdl'
+RDL::Config.instance.number_mode = true
 require 'types/core'
 
 require_relative 'tzinfo/version'
